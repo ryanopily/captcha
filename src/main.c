@@ -22,16 +22,22 @@ int main(int argc, char *argv[])
     const char *challenge       = NULL; 
     size_t font_size            = 48;
 
-    /* Pixel omission rate [0,100] determines the probability of omitting a set pixel */
+    /* Pixel omission rate [0,100] */
     uint8_t omission = 0;
 
-    /* K is a parameter used in a barrel/pincture camera lens distortion model */
+    /*
+     * Radial distortion parameters
+     */
+    /* View plane */
     bool is_k   = false;
     double k    = 0.0;
 
+    /* Center of projection */
+    double z    = 2.0;
+
     int8_t opt;
 
-    while((opt = getopt(argc, argv, "s:o:k:")) != -1)
+    while((opt = getopt(argc, argv, "s:o::k::z::")) != -1)
     {
         switch(opt)
         {
@@ -47,32 +53,29 @@ int main(int argc, char *argv[])
 
             case 'o':
 
-                if(!(omission = atoi(optarg)))
+                if(optarg)
                 {
-                    fprintf(stderr, "WARNING: Invalid omission rate '%s'\n", optarg);
-                    omission = 0;
-                }
-
-                else
-                {
-                    omission = MIN(omission, 100);
+                    omission = MIN(atoi(optarg), 0);
                 }
 
                 break;
 
             case 'k':
 
-                if(fabs((k = atof(optarg))) < 10e-7)
+                if(optarg)
                 {
-                    fprintf(stderr, "WARNING: Invalid barrel/pincture parameter '%s'\n", optarg);
-                    is_k = false;
-                }
-                
-                else
-                {
-                    is_k = true;
+                    k = atof(optarg);
                 }
 
+                is_k = true;
+                break;
+
+            case 'z':
+
+                if(optarg)
+                {
+                    z = atof(optarg);
+                }
                 break;
         } 
     }
@@ -130,10 +133,8 @@ int main(int argc, char *argv[])
      */
     size_t bitmap_ascender = (double) ft_face->ascender / (double) ft_face->units_per_EM * font_size;
     size_t bitmap_descender = (double) ft_face->descender / (double) ft_face->units_per_EM * font_size;
-
     size_t bitmap_cols = font_size * (strlen(challenge) + 2);
     size_t bitmap_rows = (bitmap_ascender - bitmap_descender) * 3;
-
     size_t bitmap_advance_x = font_size;
     size_t bitmap_advance_y = (2 * bitmap_rows / 3) + bitmap_descender;
 
@@ -154,43 +155,46 @@ int main(int argc, char *argv[])
 
         size_t glyph_cols = glyph->bitmap.width;
         size_t glyph_rows = glyph->bitmap.rows;
-
         size_t glyph_left = glyph->bitmap_left;
         size_t glyph_top = glyph->bitmap_top;
 
         double center_x = (double) glyph_cols / 2.0;
         double center_y = (double) glyph_rows / 2.0;
 
+        /* Radial distortion model */
+        double radius = (double) MAX(glyph_cols, glyph_rows) / 2.0;
+        double eye_x = center_x;
+        double eye_y = center_y;
+        double eye_z = radius * z;
+
         for(size_t row = 0; row < glyph_rows; row++)
         {
             for(size_t col = 0; col < glyph_cols; col++)
             {
                 uint8_t color   = glyph->bitmap.buffer[row * glyph_cols + col] ? 1 : 0;
-                size_t y_offset = (row - glyph_top + bitmap_advance_y) * bitmap_cols;
-                size_t x_offset = (col + glyph_left + bitmap_advance_x);
+                size_t x_offset = col + glyph_left + bitmap_advance_x;
+                size_t y_offset = row - glyph_top + bitmap_advance_y;
 
                 if(omission && color)
                 {
-                    color = rand() % 100 < omission ? 0 : 1;
+                    color = rand() % 100 < omission;
                 }
 
-                if(is_k && color)
+                if(is_k)
                 {
-                    double dy = (double) row - center_y;
-                    double dx = (double) col - center_x;
-                    double ru = sqrt(pow(dx, 2.0) + pow(dy, 2.0));
+                    /* Orthographic projection on glyph from plane z = 0 to sphere */
+                    double z  = sqrt(pow(radius, 2.0) - pow(col - eye_x, 2.0) - pow(row - eye_y, 2.0));
 
-                    dx = round(dx * (1 - k * pow(dx / ru, 2.0)) + center_x);
-                    dy = round(dy * (1 - k * pow(dy / ru, 2.0)) + center_y);
-                    
-                    size_t x = (size_t) MIN(MAX(dx + glyph_left + bitmap_advance_x, 0), bitmap_cols);
-                    size_t y = (size_t) MIN(MAX(dy - glyph_top + bitmap_advance_y, 0), bitmap_rows);
+                    /* Perspective projection on glyph from sphere to plane z = k * radius */
+                    double t  = (eye_z - k * radius) / (eye_z - z);
+                    double dx = eye_x - (eye_x - col) * t;
+                    double dy = eye_y - (eye_y - row) * t;
 
-                    y_offset = y * bitmap_cols;
-                    x_offset = x;
+                    x_offset = (size_t) MIN(MAX(round(dx) + glyph_left + bitmap_advance_x, 0), bitmap_cols);
+                    y_offset = (size_t) MIN(MAX(round(dy) - glyph_top + bitmap_advance_y, 0), bitmap_rows);
                 }
 
-                bitmap[y_offset + x_offset] = color;
+                bitmap[y_offset * bitmap_cols + x_offset] = color;
             }
         }  
         
