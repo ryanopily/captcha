@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 
                 if(omission && color)
                 {
-                    color = rand() % 101 < omission ? 0 : 1;
+                    color = rand() % 100 < omission ? 0 : 1;
                 }
 
                 if(is_k && color)
