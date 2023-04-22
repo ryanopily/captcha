@@ -1,4 +1,4 @@
-# CAPTCHA
+![CAPTCHA](https://raw.githubusercontent.com/ryanopily/captcha/development/captcha.png)
 
 CAPTCHA is a C program that generates captcha images.
 
