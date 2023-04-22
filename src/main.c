@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 
                 if(optarg)
                 {
-                    omission = MIN(atoi(optarg), 0);
+                    omission = MIN(atoi(optarg), 100);
                 }
 
                 break;
@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
 
 #ifdef DEBUG
     fprintf(stdout, "FONT_SIZE: %ld; TTF_FILEPATH: %s; CHALLENGE: %s;\n", font_size, ttf_filepath, challenge);
+    fprintf(stdout, "OMISSION: %d\n", omission);
 #endif
 
     /*
@@ -177,7 +178,7 @@ int main(int argc, char *argv[])
 
                 if(omission && color)
                 {
-                    color = rand() % 100 < omission;
+                    color = (rand() % 100) >= omission;
                 }
 
                 if(is_k)
