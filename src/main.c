@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
                     color = (rand() % 100) >= omission;
                 }
 
-                if(is_k)
+                if(is_k && color)
                 {
                     /* Orthographic projection on glyph from plane z = 0 to sphere */
                     double z  = sqrt(pow(radius, 2.0) - pow(col - eye_x, 2.0) - pow(row - eye_y, 2.0));
@@ -206,7 +206,10 @@ int main(int argc, char *argv[])
                     y_offset = (size_t) MIN(MAX(round(dy) - glyph_top + bitmap_advance_y, 0), bitmap_rows);
                 }
 
-                bitmap[y_offset * bitmap_cols + x_offset] = color;
+                if(color)
+                {
+                    bitmap[y_offset * bitmap_cols + x_offset] = color;
+                }
             }
         }  
         
