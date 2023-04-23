@@ -26,6 +26,7 @@ CAPTCHA is a C program that generates captcha images.
 
 - **-s**: font size
 - **-k**: lens distortion parameter
+- **-r**: lens smoothness parameter
 - **-o**: pixel omission parameter
 
 

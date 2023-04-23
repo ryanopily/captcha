@@ -33,11 +33,14 @@ int main(int argc, char *argv[])
     double k    = 0.0;
 
     /* Center of projection */
-    double z    = 2.0;
+    double ez    = 2;
+    
+    /* Radius scale */
+    double r     = 1;
 
     int8_t opt;
 
-    while((opt = getopt(argc, argv, "s:o::k::z::")) != -1)
+    while((opt = getopt(argc, argv, "s:o::k::z::r::")) != -1)
     {
         switch(opt)
         {
@@ -74,7 +77,15 @@ int main(int argc, char *argv[])
 
                 if(optarg)
                 {
-                    z = atof(optarg);
+                    ez = atof(optarg);
+                }
+                break;
+
+            case 'r':
+
+                if(optarg)
+                {
+                    r = atof(optarg);
                 }
                 break;
         } 
@@ -163,10 +174,10 @@ int main(int argc, char *argv[])
         double center_y = (double) glyph_rows / 2.0;
 
         /* Radial distortion model */
-        double radius = (double) MAX(glyph_cols, glyph_rows) / 2.0;
+        double radius = (double) MAX(glyph_cols, glyph_rows) / 2 * r;
         double eye_x = center_x;
         double eye_y = center_y;
-        double eye_z = radius * z;
+        double eye_z = radius * ez;
 
         for(size_t row = 0; row < glyph_rows; row++)
         {
